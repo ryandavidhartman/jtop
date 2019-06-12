@@ -19,8 +19,8 @@ object Main extends scala.scalajs.js.JSApp {
   var heapUsagePercentData = Array[Double](0.0)
   var loadedClassesData = Array[Double](0.0)
   var threadsData = Array[Double](0.0)
-  val heapUsageBarsData = Array[Double](0.0, 0.0, 0.0)
-  val offheapUsageBarsData = Array[Double](0.0, 0.0, 0.0)
+  val heapUsageBarsData = Array[Double](0.0, 0.0, 0.0, 0.0, 0.0)
+  val offHeapUsageBarsData = Array[Double](0.0, 0.0, 0.0)
 
   val host = "localhost"
   val port = 8855 // NOTE: this would be better as a command-line argument
@@ -52,44 +52,29 @@ object Main extends scala.scalajs.js.JSApp {
 
     screen = blessed.screen()
 
-    val mainGrid = js.Dynamic.newInstance(contrib.grid)(js.Dynamic.literal(rows = 1, cols = 2))
-    val gridLeft = js.Dynamic.newInstance(contrib.grid)(js.Dynamic.literal(rows = 2, cols = 1))
+    val grid = js.Dynamic.newInstance(contrib.grid)(js.Dynamic.literal(rows = 2, cols = 3, screen = screen))
 
-    gridLeft.set(0, 0, contrib.line,
+    heapUsageLine = grid.set(0, 0, 1, 1, contrib.line,
       js.Dynamic.literal(showNthLabel = 9999, label = "Heap Memory Usage (Mb)",
         style = js.Dynamic.literal(line = "blue", text = "white"))
     )
-    gridLeft.set(1, 0, contrib.line,
+    loadedClassesLine = grid.set(0, 1, 1, 1, contrib.line,
       js.Dynamic.literal(showNthLabel = 9999, label = "Loaded Classes",
         style = js.Dynamic.literal(line = "green", text = "white"))
     )
 
-    val gridBottomRight = js.Dynamic.newInstance(contrib.grid)(js.Dynamic.literal(rows = 1, cols = 2))
-    gridBottomRight.set(0, 0, contrib.bar,
-      js.Dynamic.literal(barWidth = 5, barSpacing = 10, maxHeight = 10, label = "Heap Usage (%)")
-    )
-    gridBottomRight.set(0, 1, contrib.bar,
-      js.Dynamic.literal(barWidth = 5, barSpacing = 10, maxHeight = 10, label = "Off-Heap Usage (%)")
-    )
-
-    val gridRight = js.Dynamic.newInstance(contrib.grid)(js.Dynamic.literal(rows = 2, cols = 1))
-    gridRight.set(0, 0, contrib.line,
+    threadsLine = grid.set(0, 2, 1, 1, contrib.line,
       js.Dynamic.literal(showNthLabel = 9999, label = "Threads",
         style = js.Dynamic.literal(line = "red", text = "white"))
     )
-    gridRight.set(1, 0, gridBottomRight)
 
-    mainGrid.set(0, 0, gridLeft)
-    mainGrid.set(0, 1, gridRight)
+    heapUsageBars = grid.set(1, 0, 1, 2, contrib.bar,
+      js.Dynamic.literal(barWidth = 5, barSpacing = 10, maxHeight = 10, label = "Heap Usage (%)")
+    )
+    offHeapUsageBars = grid.set(1, 2, 1, 1, contrib.bar,
+      js.Dynamic.literal(barWidth = 5, barSpacing = 10, maxHeight = 10, label = "Off-Heap Usage (%)")
+    )
 
-    mainGrid.applyLayout(screen)
-
-    heapUsageLine = gridLeft.get(0, 0)
-    loadedClassesLine = gridLeft.get(1, 0)
-
-    threadsLine = gridRight.get(0, 0)
-    heapUsageBars = gridBottomRight.get(0, 0)
-    offHeapUsageBars = gridBottomRight.get(0, 1)
   }
 
 
@@ -117,32 +102,40 @@ object Main extends scala.scalajs.js.JSApp {
     }
     // HEAP
 
-    client.getAttribute("java.lang:type=MemoryPool,name=PS Eden Space", "Usage", (data: Dynamic) => {
+    client.getAttribute("java.lang:type=MemoryPool,name=Par Eden Space", "Usage", (data: Dynamic) => {
+      heapUsageBarsData(0) = percentFor(data)
+    })
+
+    client.getAttribute("java.lang:type=MemoryPool,name=Par Survivor Space", "Usage", (data: Dynamic) => {
       heapUsageBarsData(1) = percentFor(data)
     })
 
-    client.getAttribute("java.lang:type=MemoryPool,name=PS Survivor Space", "Usage", (data: Dynamic) => {
+    client.getAttribute("java.lang:type=MemoryPool,name=CMS Old Gen", "Usage", (data: Dynamic) => {
       heapUsageBarsData(2) = percentFor(data)
     })
 
-    client.getAttribute("java.lang:type=MemoryPool,name=PS Old Gen", "Usage", (data: Dynamic) => {
-      heapUsageBarsData(0) = percentFor(data)
+    client.getAttribute("java.lang:type=MemoryPool,name=CMS Perm Gen", "Usage", (data: Dynamic) => {
+      heapUsageBarsData(3) = percentFor(data)
+    })
+
+    client.getAttribute("java.lang:type=MemoryPool,name=Code Cache", "Usage", (data: Dynamic) => {
+      heapUsageBarsData(4) = percentFor(data)
     })
 
     // NON_HEAP
 
     client.getAttribute("java.lang:type=MemoryPool,name=Code Cache", "Usage", (data: Dynamic) => {
-      offheapUsageBarsData(1) = percentFor(data)
+      offHeapUsageBarsData(1) = percentFor(data)
     })
 
     client.getAttribute("java.lang:type=MemoryPool,name=Compressed Class Space", "Usage", (data: Dynamic) => {
-      offheapUsageBarsData(2) = percentFor(data)
+      offHeapUsageBarsData(2) = percentFor(data)
     })
 
     client.getAttribute("java.lang:type=MemoryPool,name=Metaspace", "Usage", (data: Dynamic) => {
       val used = data.getSync("committed").toString.toDouble
       val max = used * 5
-      offheapUsageBarsData(0) = math.abs(math.ceil((used / max) * 100.0D))
+      offHeapUsageBarsData(0) = math.abs(math.ceil((used / max) * 100.0D))
     })
   }
 
@@ -151,12 +144,22 @@ object Main extends scala.scalajs.js.JSApp {
    * Update the data on the screen and render it again
    */
   def renderScreen(): Unit = {
-    heapUsageLine.setData(Array[String](" "), heapUsagePercentData)
-    loadedClassesLine.setData(Array[String](" "), loadedClassesData)
-    threadsLine.setData(Array[String](" "), threadsData)
+    val heapUsageLineDataObj = js.Dynamic.literal(x = Array[String](" "), y = heapUsagePercentData)
+    heapUsageLine.setData(heapUsageLineDataObj)
 
-    heapUsageBars.setData(js.Dynamic.literal(titles = Array[String]("OldGen", "Eden", "Survivor"), data = heapUsageBarsData))
-    offHeapUsageBars.setData(js.Dynamic.literal(titles = Array[String]("Meta", "Cache", "Compr"), data = offheapUsageBarsData))
+    val loadedClassesDataObj = js.Dynamic.literal(x = Array[String](" "), y = loadedClassesData)
+    loadedClassesLine.setData(loadedClassesDataObj)
+
+    val threadLineDataObj = js.Dynamic.literal(x = Array[String](" "), y = threadsData)
+    threadsLine.setData(threadLineDataObj)
+
+    val heapBarTitles = Array[String]("Par Eden", "Par Survivor", "CMS Old Gen", "CMS Perm Gen", "Code Cache")
+    val heapUsageBarsDataObj = js.Dynamic.literal(titles = heapBarTitles, data = heapUsageBarsData)
+    heapUsageBars.setData(heapUsageBarsDataObj)
+
+    val offHeapBarTitles = Array[String]("Meta", "Cache", "Compr")
+    val offHeapUsageBarsDataObj = js.Dynamic.literal(titles = offHeapBarTitles, data = offHeapUsageBarsData)
+    offHeapUsageBars.setData(offHeapUsageBarsDataObj)
 
     screen.render()
   }
