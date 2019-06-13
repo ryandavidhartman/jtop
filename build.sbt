@@ -1,22 +1,17 @@
-import scala.scalajs.sbtplugin.ScalaJSPlugin._
-
-scalaJSSettings
+enablePlugins(ScalaJSPlugin)
 
 name := "jtop"
+scalaVersion := "2.12.8"
 
-version := "0.1-SNAPSHOT"
+version := "0.2-SNAPSHOT"
 
-scalaVersion := "2.11.5"
 
 resolvers += "bintray/non" at "http://dl.bintray.com/non/maven"
 
-libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.2.5"
+libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.7.1"
 
-ScalaJSKeys.persistLauncher := true
-
+scalaJSUseMainModuleInitializer := true
 mainClass := Some("jtop.Main")
-
-ScalaJSKeys.requiresDOM := false
 
 //val copyAndMunge = taskKey[Unit]("")
 //

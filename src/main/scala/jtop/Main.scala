@@ -6,6 +6,7 @@ object Main extends scala.scalajs.js.JSApp {
   import scala.scalajs.js
   import js.Dynamic
   import js.Dynamic.global
+  import js.JSConverters._
 
   val maxRetentionSize = 100
 
@@ -16,11 +17,11 @@ object Main extends scala.scalajs.js.JSApp {
   var heapUsageBars: js.Dynamic = null
   var offHeapUsageBars: js.Dynamic = null
 
-  var heapUsagePercentData = Array[Double](0.0)
-  var loadedClassesData = Array[Double](0.0)
-  var threadsData = Array[Double](0.0)
-  val heapUsageBarsData = Array[Double](0.0, 0.0, 0.0, 0.0, 0.0)
-  val offHeapUsageBarsData = Array[Double](0.0, 0.0, 0.0)
+  var heapUsagedInMbData = scala.collection.mutable.ArraySeq[Double](0.0)
+  var loadedClassesData = scala.collection.mutable.ArraySeq[Double](0.0)
+  var threadsData = scala.collection.mutable.ArraySeq[Double](0.0)
+  val heapUsageBarsData = scala.collection.mutable.ArraySeq[Double](0.0, 0.0, 0.0, 0.0, 0.0)
+  val offHeapUsageBarsData = scala.collection.mutable.ArraySeq[Double](0.0, 0.0, 0.0)
 
   val host = "localhost"
   val port = 8855 // NOTE: this would be better as a command-line argument
@@ -84,7 +85,7 @@ object Main extends scala.scalajs.js.JSApp {
   def refreshData(client: Client): Unit = {
     client.getAttribute("java.lang:type=Memory", "HeapMemoryUsage", (data: Dynamic) => {
       val used = data.getSync("used").toString.toDouble / 1048576.0
-      heapUsagePercentData = (heapUsagePercentData :+ used).takeRight(maxRetentionSize)
+      heapUsagedInMbData = (heapUsagedInMbData :+ used).takeRight(maxRetentionSize)
     })
 
     client.getAttribute("java.lang:type=Threading", "ThreadCount", (count: Dynamic) => {
@@ -144,21 +145,21 @@ object Main extends scala.scalajs.js.JSApp {
    * Update the data on the screen and render it again
    */
   def renderScreen(): Unit = {
-    val heapUsageLineDataObj = js.Dynamic.literal(x = Array[String](" "), y = heapUsagePercentData)
+    val heapUsageLineDataObj = js.Dynamic.literal("x" ->  " ", "y" -> heapUsagedInMbData.toJSArray)
     heapUsageLine.setData(heapUsageLineDataObj)
 
-    val loadedClassesDataObj = js.Dynamic.literal(x = Array[String](" "), y = loadedClassesData)
+    val loadedClassesDataObj = js.Dynamic.literal("x" ->  " ", "y" -> loadedClassesData.toJSArray)
     loadedClassesLine.setData(loadedClassesDataObj)
 
-    val threadLineDataObj = js.Dynamic.literal(x = Array[String](" "), y = threadsData)
+    val threadLineDataObj = js.Dynamic.literal("x" -> " ", "y" -> threadsData.toJSArray)
     threadsLine.setData(threadLineDataObj)
 
-    val heapBarTitles = Array[String]("Par Eden", "Par Survivor", "CMS Old Gen", "CMS Perm Gen", "Code Cache")
-    val heapUsageBarsDataObj = js.Dynamic.literal(titles = heapBarTitles, data = heapUsageBarsData)
+    val heapBarTitles = Vector[String]("Par Eden", "Par Survivor", "CMS Old Gen", "CMS Perm Gen", "Code Cache")
+    val heapUsageBarsDataObj = js.Dynamic.literal("titles" -> heapBarTitles.toJSArray, "data" -> heapUsageBarsData.toJSArray)
     heapUsageBars.setData(heapUsageBarsDataObj)
 
-    val offHeapBarTitles = Array[String]("Meta", "Cache", "Compr")
-    val offHeapUsageBarsDataObj = js.Dynamic.literal(titles = offHeapBarTitles, data = offHeapUsageBarsData)
+    val offHeapBarTitles = Vector[String]("Meta", "Cache", "Compr")
+    val offHeapUsageBarsDataObj = js.Dynamic.literal("titles" -> offHeapBarTitles.toJSArray, "data" -> offHeapUsageBarsData.toJSArray)
     offHeapUsageBars.setData(offHeapUsageBarsDataObj)
 
     screen.render()

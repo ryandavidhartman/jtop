@@ -5,6 +5,8 @@ A terminal application that monitors Java applications over JMX. Uses NCURSES to
 
 Written in Scala.js for Node.js.
 
+Forked from [https://github.com/swartzrock/jtop](https://github.com/swartzrock/jtop)
+
 ![screenshot](screenshot.png)
 
 

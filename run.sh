@@ -4,9 +4,9 @@ cd $(cd -P -- "$( dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 
 sbt fastOptJS
 
-cp -p target/scala-2.11/jtop-fastopt.js jtop.js
+cp -p target/scala-2.12/jtop-fastopt.js jtop.js
 
-cat target/scala-2.11/jtop-fastopt.js | sed 's/ScalaJS.g\["require"\]/require/' > jtop.js
+cat target/scala-2.12/jtop-fastopt.js | sed 's/$g.require/require/g' > jtop.js
 
 cat << EOF >> jtop.js
 // Hack console log to duplicate double % signs
