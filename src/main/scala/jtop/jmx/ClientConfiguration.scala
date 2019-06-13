@@ -2,6 +2,7 @@ package jtop.jmx
 
 import scala.scalajs.js
 
+@js.native
 trait ClientConfiguration extends js.Object {
   val host: String
   val port: Int
