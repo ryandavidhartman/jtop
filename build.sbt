@@ -3,15 +3,12 @@ enablePlugins(ScalaJSPlugin)
 name := "jtop"
 scalaVersion := "2.12.8"
 
-version := "0.2-SNAPSHOT"
-
+version := "1.0"
 
 resolvers += "bintray/non" at "http://dl.bintray.com/non/maven"
 
-libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.7.1"
-
 scalaJSUseMainModuleInitializer := true
-mainClass := Some("jtop.Main")
+mainClass in Compile := Some("jtop.JTopApp")
 
 //val copyAndMunge = taskKey[Unit]("")
 //

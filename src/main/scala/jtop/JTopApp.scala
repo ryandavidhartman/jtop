@@ -1,8 +1,8 @@
 package jtop
 
-import jtop.jmx.{JMX, Client, ClientConfiguration}
+import jtop.jmx.{Client, ClientConfiguration, JMX}
 
-object Main extends scala.scalajs.js.JSApp {
+object JTopApp {
   import scala.scalajs.js
   import js.Dynamic
   import js.Dynamic.global
